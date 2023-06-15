@@ -1,0 +1,32 @@
+[tool.poetry]
+name = "inventoro"
+version = "0.1.0"
+description = ""
+authors = ["Renata Hlavova <hlavova.renata@gmail.com>"]
+
+
+[tool.poetry.group.dev.dependencies]
+black = ">=22.10.0"
+pylint = ">=2.15.5"
+
+poethepoet = ">=0.16.4"
+isort = ">=5.10.1"
+
+[tool.black]
+line-length = 120
+
+[tool.poe.tasks]
+isort = "isort inventoro/ main.py"
+isort-check = "isort --check inventoro/ main.py"
+black = "black inventoro/ main.py"
+black-check = "black --check inventoro/ main.py"
+
+pylint = "pylint inventoro/ main.py"
+
+format = ["isort", "black"]
+lint = ["isort-check", "black-check", "pylint"]
+
+run = "python -um main"
+
+[tool.poetry.dependencies]
+python = "^3.9,<=3.11"
