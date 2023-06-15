@@ -30,3 +30,7 @@ run = "python -um main"
 
 [tool.poetry.dependencies]
 python = "^3.9,<=3.11"
+requests = "^2.31.0"
+backoff = "^2.2.1"
+duckdb = "^0.8.1"
+python-dotenv = "^1.0.0"
