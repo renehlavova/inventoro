@@ -387,6 +387,11 @@ logging-format-style=old
 # function parameter format.
 logging-modules=logging
 
+[MASTER]
+
+# Whitelisting duckdb C extension
+extension-pkg-allow-list=duckdb
+
 
 [MESSAGES CONTROL]
 

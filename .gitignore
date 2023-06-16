@@ -3,6 +3,8 @@ config.json
 service-account.json
 output/
 input/
+input_preprocessed/
+tmp/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
