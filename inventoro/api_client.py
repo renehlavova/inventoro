@@ -9,6 +9,18 @@ import requests
 logger = logging.getLogger(__name__)
 
 
+def _ichunk(iterable, chunksize):
+    """Chunk an iterable into chunks of size chunksize."""
+    current = []
+    for element in iterable:
+        current.append(element)
+        if len(current) == chunksize:
+            yield current
+            current = []
+    if current:
+        yield current
+
+
 class APIClient:
     """API Client for Inventoro."""
 
@@ -30,7 +42,7 @@ class APIClient:
             "secret": self.client_secret,
         }
         token_endpoint = f"{self.url}/login"
-        response = self.session.post(token_endpoint, json=config)
+        response = self._session.post(token_endpoint, json=config)
         try:
             response.raise_for_status()
         except requests.HTTPError as error:
@@ -47,7 +59,7 @@ class APIClient:
         """Get access token."""
 
         if not self._access_token or (self._token_expiration and datetime.now() > self._token_expiration):
-            self._access_token = self._get_token()["access_token"]
+            self._access_token = self._get_token()
 
         return self._access_token
 
@@ -59,8 +71,23 @@ class APIClient:
 
         return self._session
 
-    def post_warehouse_products(self):
+    def post_warehouse_products(self, data):
         """Post warehouse products to the API."""
 
-    def post_transactions(self):
-        """Post transactions to the API."""
+        for chunk in _ichunk(data, 20):  # limit of 20 products per call
+            response = self.session.put(f"{self.url}/import/warehouse-products", timeout=120, json=list(chunk))
+            try:
+                response.raise_for_status()
+            except requests.HTTPError as error:
+                raise ValueError(f"Bad response status code - {response.status_code}") from error
+
+    def get_warehouse_products(self):
+        """Get warehouse products from the API for validation of the result."""
+
+        response = self.session.get(f"{self.url}/import/warehouse-products")
+        try:
+            response.raise_for_status()
+        except requests.HTTPError as error:
+            raise ValueError(f"Bad response status code - {response.status_code}") from error
+
+        return response.json()
