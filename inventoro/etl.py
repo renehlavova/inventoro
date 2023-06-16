@@ -78,7 +78,7 @@ class ETL:
         #   - transforming only mandatory fields
         #   - warehouse product is understood as a product option from productOptions column
 
-        query_1 = """
+        query = """
         SELECT 
             {  
                 'id': 'test', 
@@ -123,4 +123,4 @@ class ETL:
         LEFT JOIN contacts_supplier cs on cs.id = p.supplierId
         """
 
-        return self.connection.sql(query_1)
+        return self.connection.sql(query)

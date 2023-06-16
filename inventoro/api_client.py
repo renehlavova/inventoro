@@ -76,18 +76,11 @@ class APIClient:
 
         for chunk in _ichunk(data, 20):  # limit of 20 products per call
             response = self.session.put(f"{self.url}/import/warehouse-products", timeout=120, json=list(chunk))
-            try:
-                response.raise_for_status()
-            except requests.HTTPError as error:
-                raise ValueError(f"Bad response status code - {response.status_code}") from error
+            response.raise_for_status()
 
     def get_warehouse_products(self):
         """Get warehouse products from the API for validation of the result."""
 
         response = self.session.get(f"{self.url}/import/warehouse-products")
-        try:
-            response.raise_for_status()
-        except requests.HTTPError as error:
-            raise ValueError(f"Bad response status code - {response.status_code}") from error
-
+        response.raise_for_status()
         return response.json()
