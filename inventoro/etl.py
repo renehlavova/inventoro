@@ -20,7 +20,7 @@ class ETL:
 
         return self
 
-    def __exit__(self, exc, exc_type, traceback):
+    def __exit__(self, _exc, _exc_type, _traceback):
         """Close the DuckDB database."""
         logger.info("Closing the DuckDB database")
 
@@ -35,44 +35,92 @@ class ETL:
 
         return self._connection
 
-    def load_csv(self, filepath):
-        """Load CSV file into DuckDB."""
-        table_path = filepath.split(".csv")[0]
-        table_name = table_path.split("/")[-1]
-
-        logger.info(f"Loading CSV file {filepath}")
-
-        return self.connection.execute(f"CREATE TABLE {table_name} AS SELECT * FROM read_csv_auto('{filepath}')")
-
     def list_tables(self):
         """List all tables in DuckDB."""
         logger.info("Listing all tables")
 
-        result = self.connection.execute("SELECT table_name FROM information_schema.tables")
+        result = self.connection.sql("SELECT table_name FROM information_schema.tables")
         tables = [row[0] for row in result.fetchall()]
 
-        logger.info(f"Found {len(tables)} tables in DuckDB: {tables}")
+        logger.info("Found %s tables in DuckDB: %s", len(tables), tables)
 
         return tables
 
+    def table_from_column(self, column, source_table):
+        """Create a table from a json column."""
+        self.connection.sql(
+            f"create or replace table _json_data as select json({column}) as {column} from {source_table}"
+        )
+
+        result = self.connection.sql(f"select json_structure({column}) from _json_data").fetchone()
+
+        if not result:
+            raise RuntimeError(f"Could not get structure for {column} from {source_table}")
+
+        structure = result[0]
+
+        return self.connection.sql(
+            (
+                f"select _unnested.* from (select unnest(from_json({column}, '{structure}')) "
+                "as _unnested from _json_data) tbl"
+            )
+        )
+
     def transform_warehouse_products(self):
         """Transform warehouse products."""
-        # q1 = ...
-        # q2 = ...
+        logger.info("Transforming warehouse products")
 
-        # queries = [q1, q2]
+        self.connection.sql("SELECT * FROM 'input_preprocessed/products.csv'").create("products")
+        self.table_from_column("productOptions", "products").create("product_options")
+        self.connection.sql("SELECT * FROM 'input_preprocessed/contact_supplier.csv'").create("contacts_supplier")
 
-        # for query in queries:
-        #    self.connection.exequte(query)
+        # notes for ETL:
+        #   - transforming only mandatory fields
+        #   - warehouse product is understood as a product option from productOptions column
 
-    def get_warehouse_products(self, table):
-        """Select all warehouse products from DuckDB."""
-        logger.info(f"Selecting {table}")
+        query_1 = """
+        SELECT 
+            {  
+                'id': 'test', 
+                'name': 'test', 
+                'parentWarehouseId': ''
+            } as warehouse,
+            {
+                'id': TRIM(p.id),
+                'name': TRIM(p.name),
+                'shortcut': TRIM(p.id),
+                'category': {
+                    'id': TRIM(p.category),
+                    'name': TRIM(p.category),
+                },
+                'shortDescription': TRIM(p.description), 
+                'description': TRIM(p.description),
+                'metaDescription': TRIM(p.description),
+                'images': [],
+                'properties': {
+                    'productIdBySupplier': '',
+                    'ean': TRIM(po.barcode),
+                    'collection': '',
+                    'brand': TRIM(p.brand),
+                    'weight': po.optionWeight,
+                    'volume': 0,
+                }
+            } as product,
+            po.stockAvailable as availableSupply, 
+            0 AS stockPrice,
+            po.wholesalePrice as salePrice,
+            {
+                'id': TRIM(p.supplierId),
+                'name': CONCAT(TRIM(cs.lastName), ' ', TRIM(cs.firstName)),
+                'currency': {
+                    'id': '',
+                    'default': true
+                }
+            } as supplier,
+            [] as transactions
+        FROM product_options po
+        LEFT JOIN products p on p.id = po.productId
+        LEFT JOIN contacts_supplier cs on cs.id = p.supplierId
+        """
 
-        return self.connection.execute(f"SELECT * FROM {table}")
-
-    def transform_transactions(self):
-        """Transform transactions."""
-
-    def get_transactions(self):
-        """Select all transactions from DuckDB."""
+        return self.connection.sql(query_1)
