@@ -54,7 +54,7 @@ poetry install
 ## My notes regarding DuckDB
 
 1. this was my first time working with DuckDB, so the main aim was to learn the tool
-2. working with DuckDB wasn't clean from my point of view, I had to make a lot of compromises while retriving and loading data from and to different formats (it may be due to my low experience though)
+2. working with DuckDB wasn't clean from my point of view, I had to make a lot of compromises while retrieving and loading data from and to different formats (it may be due to my low experience though)
 3.  chaining queries is one of the main advantages of DuckDB but it was very hard to stay true to SOLID principles while also taking advantage of this. the implementation suffered due to this
 4.  lack of in-depth DuckDB documentation 
 5.  however, the performance was good (although tried it only on small data, cannot judge performance on bigger data)
